@@ -12,26 +12,63 @@ board = [[' ', ' ', ' ', ' ', ' ', ' ', ' '],
          [' ', ' ', ' ', ' ', ' ', ' ', ' ']]
 
 
+def chkMarkForWin(letter):
+    # Check rows
+    for row in range(6):
+        for col in range(4):
+            if board[row][col] == board[row][col+1] == board[row][col+2] == board[row][col+3] == letter:
+
+                return True
+    # Check columns
+    for col in range(7):
+        for row in range(3):
+            if board[row][col] == board[row+1][col] == board[row+2][col] == board[row+3][col] == letter:
+                return True
+    # Check diagonals
+    for row in range(3):
+        for col in range(4):
+            if board[row][col] == board[row+1][col+1] == board[row+2][col+2] == board[row+3][col+3] == letter:
+                return True
+    for row in range(3):
+        for col in range(3, 7):
+            if board[row][col] == board[row+1][col-1] == board[row+2][col-2] == board[row+3][col-3] == letter:
+                return True
+    return False
+
+
+player = 'O'
+bot = 'X'
+
+
 # function to print the board with 6 rows and 7 columns
 def printBoard(board):
-    print(board[0][0]+'|'+board[0][1]+'|'+board[0][2]+'|'+board[0]
-          [3]+'|'+board[0][4]+'|'+board[0][5]+'|'+board[0][6])
-    print('-+-+-+-+-+-+-')
-    print(board[1][0]+'|'+board[1][1]+'|'+board[1][2]+'|'+board[1]
-          [3]+'|'+board[1][4]+'|'+board[1][5]+'|'+board[1][6])
-    print('-+-+-+-+-+-+-')
-    print(board[2][0]+'|'+board[2][1]+'|'+board[2][2]+'|'+board[2]
-          [3]+'|'+board[2][4]+'|'+board[2][5]+'|'+board[2][6])
-    print('-+-+-+-+-+-+-')
-    print(board[3][0]+'|'+board[3][1]+'|'+board[3][2]+'|'+board[3]
-          [3]+'|'+board[3][4]+'|'+board[3][5]+'|'+board[3][6])
-    print('-+-+-+-+-+-+-')
-    print(board[4][0]+'|'+board[4][1]+'|'+board[4][2]+'|'+board[4]
-          [3]+'|'+board[4][4]+'|'+board[4][5]+'|'+board[4][6])
-    print('-+-+-+-+-+-+-')
-    print(board[5][0]+'|'+board[5][1]+'|'+board[5][2]+'|'+board[5]
-          [3]+'|'+board[5][4]+'|'+board[5][5]+'|'+board[5][6])
-    print('\n')
+    winner_color = None
+    # Determine the winner's color
+    if chkMarkForWin(player):
+        winner_color = "\033[32m"  # Green for player
+    elif chkMarkForWin(bot):
+        winner_color = "\033[33m"  # Yellow for bot
+
+    for row in range(6):
+        for col in range(7):
+            piece = board[row][col]
+            if piece == 'O':
+                # Player's pieces in green
+                print(f" \033[32m{piece}\033[0m ", end="")
+            elif piece == 'X':
+                # Bot's pieces in yellow
+                print(f" \033[33m{piece}\033[0m ", end="")
+            elif winner_color and piece in ['O', 'X']:
+                # Highlight winner's pieces
+                print(f" {winner_color}{piece}\033[0m ", end="")
+            else:
+                print(f" {piece} ", end="")  # Empty spaces in white
+            if col < 6:
+                print("|", end="")  # Column separator
+        print()  # Newline after each row
+        if row < 5:
+            print("-" * 29)  # Row separator
+    print("\n")
 
 
 printBoard(board)
@@ -68,38 +105,10 @@ def chkDraw():
             return False
     return True
 
+
 # function to check if one user has won the game
 
-
-def chkMarkForWin(letter):
-    # Check rows
-    for row in range(6):
-        for col in range(4):
-            if board[row][col] == board[row][col+1] == board[row][col+2] == board[row][col+3] == letter:
-                return True
-    # Check columns
-    for col in range(7):
-        for row in range(3):
-            if board[row][col] == board[row+1][col] == board[row+2][col] == board[row+3][col] == letter:
-                return True
-    # Check diagonals
-    for row in range(3):
-        for col in range(4):
-            if board[row][col] == board[row+1][col+1] == board[row+2][col+2] == board[row+3][col+3] == letter:
-                return True
-    for row in range(3):
-        for col in range(3, 7):
-            if board[row][col] == board[row+1][col-1] == board[row+2][col-2] == board[row+3][col-3] == letter:
-                return True
-    return False
-
-
-player = 'O'
-bot = 'X'
-
 # function for player move
-
-
 def playerMove():
     position = int(input("Enter the position for 'O': "))
     insertLetter('O', position-1)
@@ -114,7 +123,7 @@ def compMove():
         if row is not None:
             board[row][col] = bot
             # limit the depth of the search to 3
-            score = minimax(board, 0, False, 3)
+            score = minimax(board, 0, False, 4)
             board[row][col] = ' '
             if score > best_score:
                 best_score = score
@@ -203,10 +212,12 @@ def evaluatePatterns(pattern, letter):
 
 
 def ValidRow(board, col):
-   for row in range(5, -1, -1):
+    if col < 0 or col >= 7:  
+        return None
+    for row in range(5, -1, -1):
         if board[row][col] == ' ':
             return row
-   return None
+    return None
 
 
 # main game play
