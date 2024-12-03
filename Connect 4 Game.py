@@ -107,96 +107,106 @@ def playerMove():
 
 
 def compMove():
-    bestScore = -800
-    best_move = 0
+    best_score = -float('inf')
+    best_move = None
     for col in range(7):
-        if spaceIsFree(0, col):
-            row = 5
-            while row >= 0:
-                if spaceIsFree(row, col):
-                    board[row][col] = bot
-                    score = minimax(board, 0, False, 3)
-                    board[row][col] = ' '
-                    if score > bestScore:
-                        bestScore = score
-                        best_move = col
-                    break
-                row -= 1
-    insertLetter(bot, best_move)
-
-# limit the depth of the search to 3
+        row = ValidRow(board, col)
+        if row is not None:
+            board[row][col] = bot
+            # limit the depth of the search to 3
+            score = minimax(board, 0, False, 3)
+            board[row][col] = ' '
+            if score > best_score:
+                best_score = score
+                best_move = col
+    if best_move is not None:
+        insertLetter(bot, best_move)
 
 
-def minimax(board, depth, isMaximizing, max_depth):
-    if chkMarkForWin(bot):
-        return 1
+
+
+def minimax(board, depth, is_maximizing, max_depth):
     if chkMarkForWin(player):
-        return -1
-    if chkDraw():
-        return 0
-    if depth == max_depth:
+        return -1000
+    if chkMarkForWin(bot):
+        return 1000
+    if chkDraw() or depth == max_depth:
         return evaluate(board)
-    if isMaximizing:
-        bestScore = -800
+
+    if is_maximizing:
+        best_score = -float('inf')
         for col in range(7):
-            if spaceIsFree(0, col):
-                row = 5
-                while row >= 0:
-                    if spaceIsFree(row, col):
-                        board[row][col] = bot
-                        score = minimax(board, depth+1, False, max_depth)
-                        board[row][col] = ' '
-                        bestScore = max(score, bestScore)
-                        break
-                    row -= 1
-        return bestScore
+            row = ValidRow(board, col)
+            if row is not None:
+                board[row][col] = bot
+                score = minimax(board, depth+1, False, max_depth)
+                board[row][col] = ' '
+                best_score = max(best_score, score)
+        return best_score
     else:
-        bestScore = 800
+        best_score = float('inf')
         for col in range(7):
-            if spaceIsFree(0, col):
-                row = 5
-                while row >= 0:
-                    if spaceIsFree(row, col):
-                        board[row][col] = player
-                        score = minimax(board, depth+1, True, max_depth)
-                        board[row][col] = ' '
-                        bestScore = min(score, bestScore)
-                        break
-                    row -= 1
-        return bestScore
+            row = ValidRow(board, col)
+            if row is not None:
+                board[row][col] = player
+                score = minimax(board, depth+1, True, max_depth)
+                board[row][col] = ' '
+                best_score = min(best_score, score)
+        return best_score
+
 
 
 def evaluate(board):
-    # check the current state of the board and return a score
-    score = 0
-    # check rows
-    for row in range(6):
-        for col in range(4):
-            if board[row][col] == board[row][col+1] == board[row][col+2] == board[row][col+3] == bot:
-                score += 1
-            if board[row][col] == board[row][col+1] == board[row][col+2] == board[row][col+3] == player:
-                score -= 1
-    # check columns
-    for col in range(7):
-        for row in range(3):
-            if board[row][col] == board[row+1][col] == board[row+2][col] == board[row+3][col] == bot:
-                score += 1
-            if board[row][col] == board[row+1][col] == board[row+2][col] == board[row+3][col] == player:
-                score -= 1
-    # check diagonals
-    for row in range(3):
-        for col in range(4):
-            if board[row][col] == board[row+1][col+1] == board[row+2][col+2] == board[row+3][col+3] == bot:
-                score += 1
-            if board[row][col] == board[row+1][col+1] == board[row+2][col+2] == board[row+3][col+3] == player:
-                score -= 1
-    for row in range(3):
-        for col in range(3, 7):
-            if board[row][col] == board[row+1][col-1] == board[row+2][col-2] == board[row+3][col-3] == bot:
-                score += 1
-            if board[row][col] == board[row+1][col-1] == board[row+2][col-2] == board[row+3][col-3] == player:
-                score -= 1
+    score= 0
+    center_col = [board[i][3] for i in range(6)]
+    score += center_col.count(bot) * 3
+    score += evaluateLines(board, bot) - evaluateLines(board, player)
     return score
+
+
+def evaluateLines(board, letter):
+    score = 0
+    for row in range(6):
+        for col in range(7):
+            # Horizontal
+            if col <= 3:
+                score += evaluatePatterns([board[row][col+i]
+                                         for i in range(4)], letter)
+            # Vertical
+            if row <= 2:
+                score += evaluatePatterns([board[row+i][col]
+                                         for i in range(4)], letter)
+            # Diagonal 
+            if row <= 2 and col <= 3:
+                score += evaluatePatterns([board[row+i][col+i]
+                                         for i in range(4)], letter)
+            # Diagonal 
+            if row <= 2 and col >= 3:
+                score += evaluatePatterns([board[row+i][col-i]
+                                         for i in range(4)], letter)
+    return score
+
+
+
+def evaluatePatterns(pattern, letter):
+    opponent = player if letter == bot else bot
+    score = 0
+    if pattern.count(letter) == 4:
+        score += 100
+    elif pattern.count(letter) == 3 and pattern.count(' ') == 1:
+        score += 5
+    elif pattern.count(letter) == 2 and pattern.count(' ') == 2:
+        score += 2
+    if pattern.count(opponent) == 3 and pattern.count(' ') == 1:
+        score -= 4
+    return score
+
+
+def ValidRow(board, col):
+   for row in range(5, -1, -1):
+        if board[row][col] == ' ':
+            return row
+   return None
 
 
 # main game play
